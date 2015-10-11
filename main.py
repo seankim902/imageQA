@@ -36,7 +36,7 @@ def main():
     dim = 1024
     maxlen = 60
     
-    train=pd.read_pickle('train.pkl')
+    train=pd.read_pickle('train_vgg.pkl')
 
 
 
@@ -45,16 +45,16 @@ def main():
     train_y=np.array(train_y)[:,None]
     train_y = np_utils.to_categorical(train_y, y_vocab).astype('int32')
     train_x , train_x_mask = prepare_data(train_x, maxlen)
-    
-  #  train_img = [ img.tolist() for img in train['cnn_feature'] ]
+    train_x_img = np.array([ img.tolist() for img in train['cnn_feature'] ]).astype('float32')
 
     
     print 'x :', train_x.shape
     print 'x_mask:', train_x_mask.shape
+    print 'x_img:', train_x_img.shape
     print 'y : ', train_y.shape
     model = RNN(n_vocab, y_vocab, dim_word, dim)
 
-    model.train(train_x, train_x_mask, train_y, batch_size=2048, epoch=100, save=25)
+    model.train(train_x, train_x_mask, train_x_img, train_y, batch_size=512, epoch=50, save=15)
     
 if __name__ == '__main__':
     main() 

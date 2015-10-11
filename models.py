@@ -47,8 +47,8 @@ class RNN:
         
         
         ### image Embedding
- #       self.W_img_emb = initializations.uniform((4096, self.dim))     
- #       self.b_img_emb = initializations.zero((self.dim))
+        self.W_img_emb = initializations.uniform((4096, self.dim))     
+        self.b_img_emb = initializations.zero((self.dim))
 
    
         ### Word Embedding ###        
@@ -66,13 +66,13 @@ class RNN:
         self.b_pred = initializations.zero((self.y_vocab))
 
 
-        self.params = [#self.W_img_emb, self.b_img_emb,
+        self.params = [self.W_img_emb, self.b_img_emb,
                        self.W_emb,
                        self.W_gru, self.U_gru, self.b_gru,
                        self.W_gru_cdd, self.U_gru_cdd, self.b_gru_cdd,
                        self.W_pred, self.b_pred]
 
-    def gru_layer(self, state_below, mask=None, init_state=None):
+    def gru_layer(self, state_below, init_state, mask=None):
         #state_below : step * sample * dim
         nsteps = state_below.shape[0]
         n_samples = state_below.shape[1]
@@ -114,7 +114,7 @@ class RNN:
     
         rval, updates = theano.scan(_step, 
                                     sequences=seqs,
-                                    outputs_info = [T.alloc(0., n_samples, dim)],
+                                    outputs_info = [init_state], #T.alloc(0., n_samples, dim)],
                                     non_sequences = [self.U_gru, self.U_gru_cdd],
                                     name='gru_layer',
                                     n_steps=nsteps)
@@ -132,25 +132,25 @@ class RNN:
         x = T.matrix('x', dtype = 'int32')
         x_mask = T.matrix('x_mask', dtype='float32')
         y = T.matrix('y', dtype = 'int32')
-#        img = T.matrix('img', dtype = 'float32')
+        img = T.matrix('img', dtype = 'float32')
         
         n_timesteps = x.shape[0]
         n_samples = x.shape[1]
 
- #       init_state = T.dot(img, self.W_img_emb) + self.b_img_emb
+        init_state = T.dot(img, self.W_img_emb) + self.b_img_emb
         emb = self.W_emb[x.flatten()]
         
         emb = emb.reshape([n_timesteps, n_samples, self.dim_word])
         # proj : gru hidden 들의 리스트   
-        proj = self.gru_layer(emb, mask=x_mask)
+        proj = self.gru_layer(emb, init_state, mask=x_mask)
     
         
         # hidden 들의 평균
-        proj = (proj * x_mask[:, :, None]).sum(axis=0)
-        proj = proj / x_mask.sum(axis=0)[:, None]  # sample * dim
+        #proj = (proj * x_mask[:, :, None]).sum(axis=0)
+        #proj = proj / x_mask.sum(axis=0)[:, None]  # sample * dim
         
         # 마지막 hidden
-        #proj = proj[-1]  # sample * dim
+        proj = proj[-1]  # sample * dim
         
 
 
@@ -164,12 +164,12 @@ class RNN:
         
         updates = optimizer.adam(cost=cost, params=self.params, lr=lr)
 
-        return x, x_mask, y, cost, updates, prediction
+        return x, x_mask, img, y, cost, updates, prediction
         
         
  
         
-    def train(self, train_x, train_mask_x, train_y,
+    def train(self, train_x, train_mask_x, train_img, train_y,
               lr=0.001,
               batch_size=16,
               epoch=100,
@@ -178,13 +178,13 @@ class RNN:
 
         n_train = train_x.shape[1]
         
-        x, x_mask, y, cost, updates, f_prediction = self.build_model(lr)
+        x, x_mask, img, y, cost, updates, prediction = self.build_model(lr)
         # x : step * sample * dim
         # x_mask : step * sample
         # y : sample * emb
 
 
-        train_model = theano.function(inputs=[x, x_mask,y],
+        train_model = theano.function(inputs=[x, x_mask, img, y],
                                       outputs=cost,
                                       updates=updates)
                                        
@@ -202,8 +202,10 @@ class RNN:
                 x_mask = np.transpose(x_mask)
                 y = [ train_y[t,:] for t in indices]
                 y = np.array(y)
+                img = [ train_img[t,:] for t in indices]
+                img = np.array(img)
                 
-                minibatch_avg_cost = train_model(x, x_mask, y)
+                minibatch_avg_cost = train_model(x, x_mask, img, y)
                 print 'cost : ' , minibatch_avg_cost, ' [ mini batch \'', j+1, '\' in epoch \'', (i+1) ,'\' ]'
             
 #            if valid is not None:
@@ -222,7 +224,7 @@ class RNN:
                     
         
                     
-    def prediction(self, test_x, test_mask_x, test_y,
+    def prediction(self, test_x, test_mask_x, test_img, test_y,
              # valid_x=None, valid_mask_x=None, 
               #valid_y=None, valid_mask_y=None,
              # optimizer=None,
@@ -235,7 +237,8 @@ class RNN:
         test_shared_x = theano.shared(np.asarray(test_x, dtype='int32'), borrow=True)
         #test_shared_y = theano.shared(np.asarray(test_y, dtype='int32'), borrow=True)
         test_shared_mask_x = theano.shared(np.asarray(test_mask_x, dtype='float32'), borrow=True)
-     
+        test_shared_img = theano.shared(np.asarray(test_img, dtype='float32'), borrow=True)
+
         n_test = test_x.shape[1]
         n_test_batches = int(np.ceil(1.0 * n_test / batch_size))
         
@@ -243,7 +246,7 @@ class RNN:
         final_index = T.lscalar('final_index')
         
         
-        x, x_mask, y, _, _, prediction = self.build_model(lr)
+        x, x_mask, img, y, _, _, prediction = self.build_model(lr)
        
         batch_start = index * batch_size
         batch_stop = T.minimum(final_index, (index + 1) * batch_size)     
@@ -252,7 +255,8 @@ class RNN:
                                       outputs=prediction,
                                       givens={
                                          x: test_shared_x[:,batch_start:batch_stop],
-                                         x_mask: test_shared_mask_x[:,batch_start:batch_stop]})
+                                         x_mask: test_shared_mask_x[:,batch_start:batch_stop],
+                                         img: test_shared_img[batch_start:batch_stop,:]})
         
         
         prediction = []
