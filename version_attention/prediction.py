@@ -19,8 +19,8 @@ def prepare_data(seqs_x, maxlen=None):
     
     for idx, s_x in enumerate(seqs_x):
         x[:lengths_x[idx],idx] = s_x
+        #x_mask[:lengths_x[idx],idx] = 1.
         x_mask[:lengths_x[idx],idx] = 1.
-        #x_mask[:lengths_x[idx]+1,idx] = 1.
 
     return x, x_mask    
     

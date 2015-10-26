@@ -264,4 +264,3 @@ class RNN:
             print minibatch_idx, ' / ' , n_test_batches
             prediction += test_model(minibatch_idx, n_test).tolist()
         return prediction
-        
