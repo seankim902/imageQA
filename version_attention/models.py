@@ -853,6 +853,30 @@ class BIRNN_GRU:
         
                             
     def build_model(self, lr=0.001, dropout=None):
+        def concatenate(tensor_list, axis=0):
+            concat_size = sum(tt.shape[axis] for tt in tensor_list)
+            output_shape = ()
+            for k in range(axis):
+                output_shape += (tensor_list[0].shape[k],)
+            output_shape += (concat_size,)
+            for k in range(axis + 1, tensor_list[0].ndim):
+                output_shape += (tensor_list[0].shape[k],)
+            out = tensor.zeros(output_shape)
+            offset = 0
+            for tt in tensor_list:
+                indices = ()
+                for k in range(axis):
+                    indices += (slice(None),)
+                indices += (slice(offset, offset + tt.shape[axis]),)
+                for k in range(axis + 1, tensor_list[0].ndim):
+                    indices += (slice(None),)
+        
+                out = tensor.set_subtensor(out[indices], tt)
+                offset += tt.shape[axis]
+        
+            return out
+
+
     
         trng = RandomStreams(1234)
         use_noise = theano.shared(np.float32(0.))
