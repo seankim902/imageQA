@@ -14,7 +14,7 @@ dataset : http://www.cs.toronto.edu/~mren/imageqa/data/cocoqa/
 <p><p>
 <b>tensorflow</b>
  - simple : fc7 features with RNNs
-<br><p>
-<br><br>
+
+<p><p><br><br>
 <b>[demo]</b><br><br>
 <img src='https://github.com/seankim902/imageQA/blob/master/imageQA_demo.gif' height=400 width=400/>
