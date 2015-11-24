@@ -1,0 +1,31 @@
+<!doctype html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="Generator" content="EditPlus®">
+    <meta name="Author" content="">
+    <meta name="Keywords" content="">
+    <meta name="Description" content="">
+    <title>Image Question Answering</title>
+    
+</head>
+<body>
+    <p align='center'>
+        <img src="/images/moodo.jpg" width=600 height=600>
+    </p>
+    <br>
+
+    
+    <form action="." method="POST">
+        <p align='center'>        
+            <textarea style="font-size:33px" rows=3 cols=50 name="text">{% if text %}{{text}}{% endif %}</textarea><br>
+            <input type="submit" name="my-form" value="Question">
+        </p>
+    </form>
+    </p>
+    {% if answer %}
+        <h1><p align='center'>the answer is <font color='red' size=40> {{answer}} </font> </p> </h1>  
+    {% endif %}
+   
+</body>
+</html>
+
