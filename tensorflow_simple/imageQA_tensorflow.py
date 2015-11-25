@@ -408,7 +408,7 @@ def get_config():
         dropout = 0.4
         
         rnn_type = 'gru'
-        layers = None #Don't work yet
+        layers = None #it doesn’t work yet
         is_birnn = True #False
         valid_epoch = 1 # or None
         model_ckpt_path = '/home/seonhoon/Desktop/workspace/ImageQA/version_tensorflow/model/model.ckpt'
